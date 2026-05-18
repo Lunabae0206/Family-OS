@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family OS — 결제 트래킹 와이어프레임 v0.1</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --border:    #E5E7EB;
+      --border-md: #D1D5DB;
+      --bg:        #F7F7F6;
+      --card:      #FFFFFF;
+      --t1:        #111827;
+      --t2:        #6B7280;
+      --t3:        #9CA3AF;
+      --purple:    #534AB7;
+      --purple-bg: #EEEDFE;
+      --purple-bd: #AFA9EC;
+      --teal:      #1D9E75;
+      --teal-bg:   #E1F5EE;
+      --teal-bd:   #9FE1CB;
+      --amber:     #BA7517;
+      --amber-bg:  #FAEEDA;
+      --amber-bd:  #EF9F27;
+      --coral:     #993C1D;
+      --coral-bg:  #FAECE7;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    /* ── 배너 ── */
+    .wf-banner {
+      background: #EEEDFE; border-bottom: 1px solid #AFA9EC;
+      text-align: center; padding: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: #3C3489;
+    }
+
+    /* ── 네비게이션 ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+    .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--purple); }
+    .nav-tabs { display: flex; gap: 2px; }
+    .nav-tab { padding: 6px 14px; border-radius: 7px; font-size: 13px; color: var(--t2); cursor: pointer; border: none; background: transparent; }
+    .nav-tab:hover { background: var(--bg); }
+    .nav-tab.active { background: var(--purple-bg); color: var(--purple); font-weight: 500; }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-icon { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--t2); }
+    .nav-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--purple-bg); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--purple); }
+
+    /* ── 컨테이너 ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 32px 80px; }
+
+    /* ── 브레드크럼 ── */
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--t3); margin-bottom: 16px; }
+    .breadcrumb a { color: var(--t2); text-decoration: none; cursor: pointer; }
+    .breadcrumb a:hover { color: var(--purple); }
+    .breadcrumb-sep { font-size: 10px; }
+    .breadcrumb-current { color: var(--t1); font-weight: 500; }
+
+    /* ── 페이지 헤더 ── */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
+    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .page-desc { font-size: 13px; color: var(--t2); }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+    .btn-secondary { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; background: transparent; border: 1px solid var(--border); font-size: 13px; color: var(--t2); cursor: pointer; }
+    .btn-secondary:hover { background: var(--bg); }
+    .btn-primary { display: flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; background: var(--purple); color: white; border: none; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .btn-primary:hover { background: #3C3489; }
+
+    /* ── 탭 필터 ── */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 4px; width: fit-content; }
+    .tab-item { padding: 6px 18px; border-radius: 7px; font-size: 13px; color: var(--t2); cursor: pointer; border: none; background: transparent; }
+    .tab-item.on { background: var(--purple-bg); color: var(--purple); font-weight: 500; }
+
+    /* ── 통계 ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+    .stat-label { font-size: 12px; color: var(--t2); margin-bottom: 6px; }
+    .stat-val { font-size: 24px; font-weight: 700; }
+    .stat-sub { font-size: 11px; color: var(--t3); margin-top: 3px; }
+
+    /* ── 레이아웃 ── */
+    .layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+
+    /* ── 섹션 헤더 ── */
+    .sec-head { font-size: 11px; font-weight: 600; color: var(--t3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .sec-group { margin-bottom: 24px; }
+
+    /* ── 결제 카드 ── */
+    .pay-card { background: var(--card); border: 1px solid var(--border); border-left: 4px solid; border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; }
+    .pay-urgent { border-left-color: var(--coral); }
+    .pay-soon   { border-left-color: var(--amber); }
+    .pay-ok     { border-left-color: #9CA3AF; }
+
+    .pay-inner { display: flex; align-items: center; gap: 14px; }
+    .pay-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+    .pay-urgent .pay-icon { background: var(--coral-bg); color: var(--coral); }
+    .pay-soon   .pay-icon { background: var(--amber-bg); color: var(--amber); }
+    .pay-ok     .pay-icon { background: #F3F4F6; color: var(--t3); }
+
+    .pay-info { flex: 1; min-width: 0; }
+    .pay-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+    .pay-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--t2); flex-wrap: wrap; }
+
+    .pay-right { text-align: right; flex-shrink: 0; }
+    .pay-amt { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .pay-due { font-size: 12px; font-weight: 500; }
+    .due-urgent { color: var(--coral); }
+    .due-soon   { color: var(--amber); }
+    .due-ok     { color: var(--t3); }
+
+    .pay-actions { display: flex; gap: 6px; margin-top: 12px; border-top: 1px solid #F3F4F6; padding-top: 12px; }
+    .btn-paid { padding: 6px 16px; border-radius: 6px; background: var(--teal-bg); border: 1px solid var(--teal-bd); color: #085041; font-size: 12px; font-weight: 500; cursor: pointer; }
+    .btn-paid:hover { background: #C8EFE3; }
+    .btn-remind { padding: 6px 14px; border-radius: 6px; background: transparent; border: 1px solid var(--border); color: var(--t2); font-size: 12px; cursor: pointer; }
+    .btn-remind:hover { background: var(--bg); }
+    .pay-source { font-size: 10px; padding: 1px 7px; border-radius: 4px; }
+    .src-auto   { background: var(--teal-bg); color: #085041; border: 1px solid var(--teal-bd); }
+    .src-manual { background: var(--purple-bg); color: #3C3489; border: 1px solid var(--purple-bd); }
+
+    /* 납부 완료 카드 */
+    .paid-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px; }
+    .paid-check { width: 28px; height: 28px; border-radius: 50%; background: var(--teal-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .paid-info { flex: 1; }
+    .paid-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+    .paid-meta { font-size: 11px; color: var(--t3); display: flex; align-items: center; gap: 8px; }
+    .paid-amt { font-size: 14px; font-weight: 600; color: var(--t1); }
+
+    /* ── 사이드바 ── */
+    .sb-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+    .sb-title { font-size: 11px; font-weight: 600; color: var(--t3); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 14px; }
+
+    /* 월별 바 차트 */
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; margin-bottom: 10px; }
+    .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+    .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+    .bar-lbl { font-size: 10px; color: var(--t3); }
+    .bar-current { background: var(--purple); }
+    .bar-past { background: #E5E7EB; }
+
+    /* 프로바이더별 요약 */
+    .prov-sum-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #F3F4F6; font-size: 13px; }
+    .prov-sum-row:last-child { border-bottom: none; }
+    .prov-sum-left { display: flex; align-items: center; gap: 8px; }
+    .prov-color { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .prov-sum-name { color: var(--t1); }
+    .prov-sum-amt { font-weight: 600; font-size: 13px; }
+
+    /* 진행 바 */
+    .progress-wrap { margin-top: 10px; }
+    .progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; color: var(--t2); }
+    .progress-bar-bg { flex: 1; height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; }
+    .progress-val { width: 36px; text-align: right; font-size: 11px; font-weight: 500; color: var(--t1); }
+
+    /* 다가오는 직접 입력 */
+    .add-row { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border: 1px dashed var(--border-md); border-radius: 10px; color: var(--t3); font-size: 13px; cursor: pointer; margin-top: 8px; }
+    .add-row:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-bg); }
+  </style>
+</head>
+<body>
+
+  <div class="wf-banner">와이어프레임 v0.1 &nbsp;·&nbsp; Family OS &nbsp;·&nbsp; 결제 트래킹</div>
+
+  <nav>
+    <div class="logo"><div class="logo-dot"></div>Family OS</div>
+    <div class="nav-tabs">
+      <button class="nav-tab">홈</button>
+      <button class="nav-tab active">프로바이더</button>
+      <button class="nav-tab">라이프 이벤트</button>
+      <button class="nav-tab">가족</button>
+      <button class="nav-tab">설정</button>
+    </div>
+    <div class="nav-right">
+      <div class="nav-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+      </div>
+      <div class="nav-avatar">지수</div>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- 브레드크럼 -->
+    <div class="breadcrumb">
+      <a>프로바이더</a>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-current">결제 트래킹</span>
+    </div>
+
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">결제 트래킹</div>
+        <div class="page-desc">은행 연결 없이 인보이스 이메일 기반으로 결제 일정을 관리해요</div>
+      </div>
+      <div class="header-right">
+        <button class="btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+          이메일 다시 스캔
+        </button>
+        <button class="btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          직접 추가
+        </button>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="tab-bar">
+      <button class="tab-item on" onclick="setTab(this)">전체</button>
+      <button class="tab-item" onclick="setTab(this)">Emma</button>
+      <button class="tab-item" onclick="setTab(this)">Jake</button>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats-grid">
+      <div class="stat-card" style="border-top: 3px solid var(--coral);">
+        <div class="stat-label">이번 주 예정</div>
+        <div class="stat-val" style="color: var(--coral);">$85</div>
+        <div class="stat-sub">D-2 · Aqua Kids</div>
+      </div>
+      <div class="stat-card" style="border-top: 3px solid var(--amber);">
+        <div class="stat-label">이번 달 총 예정</div>
+        <div class="stat-val" style="color: var(--amber);">$312</div>
+        <div class="stat-sub">3개 서비스</div>
+      </div>
+      <div class="stat-card" style="border-top: 3px solid var(--teal);">
+        <div class="stat-label">이미 납부</div>
+        <div class="stat-val" style="color: var(--teal);">$227</div>
+        <div class="stat-sub">이번 달 기준</div>
+      </div>
+      <div class="stat-card" style="border-top: 3px solid #9CA3AF;">
+        <div class="stat-label">연간 총 지출</div>
+        <div class="stat-val" style="color: var(--t2);">$3,840</div>
+        <div class="stat-sub">올해 1월 ~ 현재</div>
+      </div>
+    </div>
+
+    <div class="layout">
+
+      <!-- 메인 콘텐츠 -->
+      <main>
+
+        <!-- 다가오는 결제 -->
+        <div class="sec-group">
+          <div class="sec-head">
+            다가오는 결제
+            <span style="font-size:11px; color:var(--t3); font-weight:400; text-transform:none; letter-spacing:0;">3개 예정</span>
+          </div>
+
+          <!-- D-2 긴급 -->
+          <div class="pay-card pay-urgent">
+            <div class="pay-inner">
+              <div class="pay-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 7a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z"/><path d="M1 21 13 9"/><path d="M9 15l-5.5 5.5a1 1 0 0 0 1.5 1.5L20 7"/></svg>
+              </div>
+              <div class="pay-info">
+                <div class="pay-name">
+                  Aqua Kids 수영
+                  <span class="pay-source src-auto">이메일 자동감지</span>
+                </div>
+                <div class="pay-meta">
+                  <span>Emma · Jake</span>
+                  <span>·</span>
+                  <span>Term 2 · 5월분</span>
+                  <span>·</span>
+                  <span>Invoice #2048</span>
+                </div>
+              </div>
+              <div class="pay-right">
+                <div class="pay-amt">$85.00</div>
+                <div class="pay-due due-urgent">D-2 · 5월 25일</div>
+              </div>
+            </div>
+            <div class="pay-actions">
+              <button class="btn-paid" onclick="markPaid(this)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M20 6 9 17l-5-5"/></svg>
+                납부 완료로 표시
+              </button>
+              <button class="btn-remind">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M10 5a2 2 0 1 1 4 0 7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+                리마인더 설정
+              </button>
+              <span style="font-size:11px; color:var(--t3); margin-left:auto; align-self:center;">인보이스 이메일 원본 보기 →</span>
+            </div>
+          </div>
+
+          <!-- D-7 -->
+          <div class="pay-card pay-soon">
+            <div class="pay-inner">
+              <div class="pay-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="pay-info">
+                <div class="pay-name">
+                  Sunshine 어린이집
+                  <span class="pay-source src-auto">이메일 자동감지</span>
+                </div>
+                <div class="pay-meta">
+                  <span>Jake</span>
+                  <span>·</span>
+                  <span>5월 보육료</span>
+                  <span>·</span>
+                  <span>CCS 공제 후</span>
+                </div>
+              </div>
+              <div class="pay-right">
+                <div class="pay-amt">$142.00</div>
+                <div class="pay-due due-soon">D-7 · 5월 31일</div>
+              </div>
+            </div>
+            <div class="pay-actions">
+              <button class="btn-paid" onclick="markPaid(this)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-2px;margin-right:4px"><path d="M20 6 9 17l-5-5"/></svg>
+                납부 완료로 표시
+              </button>
+              <button class="btn-remind">리마인더 설정</button>
+            </div>
+          </div>
+
+          <!-- 6월 1일 -->
+          <div class="pay-card pay-ok">
+            <div class="pay-inner">
+              <div class="pay-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+              <div class="pay-info">
+                <div class="pay-name">
+                  피아노 아카데미
+                  <span class="pay-source src-manual">수동 등록</span>
+                </div>
+                <div class="pay-meta">
+                  <span>Emma</span>
+                  <span>·</span>
+                  <span>월 레슨비</span>
+                  <span>·</span>
+                  <span>매월 1일 자동이체</span>
+                </div>
+              </div>
+              <div class="pay-right">
+                <div class="pay-amt">$85.00</div>
+                <div class="pay-due due-ok">D-14 · 6월 1일</div>
+              </div>
+            </div>
+            <div class="pay-actions">
+              <button class="btn-paid" onclick="markPaid(this)">납부 완료로 표시</button>
+              <button class="btn-remind">리마인더 설정</button>
+            </div>
+          </div>
+
+          <div class="add-row" onclick="">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+            이메일에 없는 결제 직접 추가
+          </div>
+        </div>
+
+        <!-- 납부 완료 -->
+        <div class="sec-group">
+          <div class="sec-head">
+            이번 달 납부 완료
+            <span style="font-size:11px; color:var(--teal); font-weight:500; text-transform:none; letter-spacing:0;">$227 완료</span>
+          </div>
+
+          <div class="paid-card">
+            <div class="paid-check">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div class="paid-info">
+              <div class="paid-name">Northside Primary 소풍비</div>
+              <div class="paid-meta">
+                <span>Emma</span>
+                <span>·</span>
+                <span>5월 12일 납부</span>
+                <span>·</span>
+                <span class="pay-source src-auto" style="border-radius:3px;">이메일 감지</span>
+              </div>
+            </div>
+            <div class="paid-amt">$25.00</div>
+          </div>
+
+          <div class="paid-card">
+            <div class="paid-check">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div class="paid-info">
+              <div class="paid-name">Aqua Kids 수영 · 4월분</div>
+              <div class="paid-meta">
+                <span>Emma · Jake</span>
+                <span>·</span>
+                <span>5월 1일 납부</span>
+                <span>·</span>
+                <span class="pay-source src-auto" style="border-radius:3px;">이메일 감지</span>
+              </div>
+            </div>
+            <div class="paid-amt">$85.00</div>
+          </div>
+
+          <div class="paid-card">
+            <div class="paid-check">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div class="paid-info">
+              <div class="paid-name">Sunshine 어린이집 · 4월분</div>
+              <div class="paid-meta">
+                <span>Jake</span>
+                <span>·</span>
+                <span>5월 2일 납부</span>
+                <span>·</span>
+                <span class="pay-source src-manual" style="border-radius:3px;">수동 확인</span>
+              </div>
+            </div>
+            <div class="paid-amt">$117.00</div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- 사이드바 -->
+      <aside>
+
+        <!-- 월별 지출 차트 -->
+        <div class="sb-card">
+          <div class="sb-title">월별 지출 추이</div>
+          <div class="bar-chart">
+            <div class="bar-wrap"><div class="bar bar-past" style="height:55%;"></div><div class="bar-lbl">1월</div></div>
+            <div class="bar-wrap"><div class="bar bar-past" style="height:60%;"></div><div class="bar-lbl">2월</div></div>
+            <div class="bar-wrap"><div class="bar bar-past" style="height:50%;"></div><div class="bar-lbl">3월</div></div>
+            <div class="bar-wrap"><div class="bar bar-past" style="height:65%;"></div><div class="bar-lbl">4월</div></div>
+            <div class="bar-wrap"><div class="bar bar-current" style="height:80%;"></div><div class="bar-lbl" style="color:var(--purple); font-weight:600;">5월</div></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--t3); padding-top:6px; border-top:1px solid #F3F4F6;">
+            <span>월 평균 $298</span>
+            <span style="color:var(--amber);">이번 달 +4.7%</span>
+          </div>
+        </div>
+
+        <!-- 프로바이더별 -->
+        <div class="sb-card">
+          <div class="sb-title">이번 달 서비스별</div>
+          <div class="prov-sum-row">
+            <div class="prov-sum-left">
+              <div class="prov-color" style="background:var(--purple);"></div>
+              <span class="prov-sum-name">Aqua Kids</span>
+            </div>
+            <span class="prov-sum-amt">$85</span>
+          </div>
+          <div class="prov-sum-row">
+            <div class="prov-sum-left">
+              <div class="prov-color" style="background:#185FA5;"></div>
+              <span class="prov-sum-name">Sunshine 어린이집</span>
+            </div>
+            <span class="prov-sum-amt">$142</span>
+          </div>
+          <div class="prov-sum-row">
+            <div class="prov-sum-left">
+              <div class="prov-color" style="background:#9CA3AF;"></div>
+              <span class="prov-sum-name">피아노 아카데미</span>
+            </div>
+            <span class="prov-sum-amt">$85</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-row">
+              <span style="width:100px; flex-shrink:0;">Aqua Kids</span>
+              <div class="progress-bar-bg"><div class="progress-fill" style="width:28%; background:var(--purple);"></div></div>
+              <span class="progress-val">28%</span>
+            </div>
+            <div class="progress-row">
+              <span style="width:100px; flex-shrink:0;">어린이집</span>
+              <div class="progress-bar-bg"><div class="progress-fill" style="width:45%; background:#185FA5;"></div></div>
+              <span class="progress-val">45%</span>
+            </div>
+            <div class="progress-row">
+              <span style="width:100px; flex-shrink:0;">피아노</span>
+              <div class="progress-bar-bg"><div class="progress-fill" style="width:27%; background:#9CA3AF;"></div></div>
+              <span class="progress-val">27%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 안내 -->
+        <div class="sb-card" style="background:#F9F9F8; border-color:var(--border);">
+          <div style="display:flex; gap:8px; font-size:12px; color:var(--t2); line-height:1.6;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <div>은행 계좌에 직접 연결하지 않아요. 이메일 인보이스에서 감지하거나 직접 입력한 정보 기반이에요.</div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    function setTab(el) {
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('on'));
+      el.classList.add('on');
+    }
+
+    function markPaid(btn) {
+      const card = btn.closest('.pay-card');
+      const actions = btn.closest('.pay-actions');
+      const name = card.querySelector('.pay-name').childNodes[0].textContent.trim();
+      const amt = card.querySelector('.pay-amt').textContent;
+
+      card.style.opacity = '0.5';
+      card.style.transition = 'opacity 0.3s';
+      setTimeout(() => { card.style.display = 'none'; }, 300);
+
+      const newPaid = document.createElement('div');
+      newPaid.className = 'paid-card';
+      newPaid.style.animation = 'fadeIn 0.3s';
+      newPaid.innerHTML = `
+        <div class="paid-check">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="paid-info">
+          <div class="paid-name">${name}</div>
+          <div class="paid-meta"><span>방금 납부 완료로 표시됨</span></div>
+        </div>
+        <div class="paid-amt">${amt}</div>`;
+
+      const paidSection = document.querySelector('.paid-card');
+      paidSection.parentNode.insertBefore(newPaid, paidSection);
+    }
+  </script>
+</body>
+</html>
