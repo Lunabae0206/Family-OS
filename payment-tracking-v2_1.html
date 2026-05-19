@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family OS — 결제 트래킹</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --bg-elev: #FFFFFF;
+    --bg-sunken: #F4F3EE;
+    --ink: #1A1A1A;
+    --ink-2: #4A4A48;
+    --ink-3: #8A8A85;
+    --ink-4: #BDBCB6;
+    --line: #ECEAE2;
+    --line-strong: #DDDAD0;
+
+    /* Accents — 따뜻한 토스 블루 + 노션의 차분함 */
+    --accent: #2563EB;
+    --accent-soft: #EBF1FE;
+    --accent-ink: #1E40AF;
+
+    --warn: #D97706;
+    --warn-soft: #FEF3E2;
+    --danger: #DC2626;
+    --danger-soft: #FEE7E7;
+    --ok: #059669;
+    --ok-soft: #E8F5EE;
+
+    /* AI agent */
+    --ai: #7C3AED;
+    --ai-soft: #F3EEFF;
+    --ai-ink: #5B21B6;
+
+    /* Family member colors */
+    --emma: #E85D75;
+    --emma-soft: #FCE7EC;
+    --jake: #1F8FFF;
+    --jake-soft: #E3F0FF;
+
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+
+    --shadow-sm: 0 1px 2px rgba(20,20,20,.04);
+    --shadow: 0 2px 8px rgba(20,20,20,.04), 0 1px 2px rgba(20,20,20,.03);
+    --shadow-lg: 0 12px 32px rgba(20,20,20,.08), 0 4px 12px rgba(20,20,20,.04);
+    --shadow-pop: 0 24px 60px rgba(20,20,20,.12), 0 8px 20px rgba(20,20,20,.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; font-feature-settings: 'ss01', 'ss02', 'tnum'; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; line-height: 1.5; }
+
+  .num { font-feature-settings: 'tnum'; letter-spacing: -0.02em; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- Layout ---------- */
+  .app {
+    display: grid;
+    grid-template-columns: 240px 1fr 380px;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+    padding: 20px 14px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px;
+  }
+  .brand-mark {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1A1A1A 0%, #404040 100%);
+    display: grid; place-items: center;
+    color: white; font-weight: 700; font-size: 14px;
+    letter-spacing: -0.02em;
+  }
+  .brand-name {
+    font-size: 16px; font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .brand-sub {
+    font-size: 11px; color: var(--ink-3);
+    margin-top: -1px;
+  }
+
+  .nav-section {
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .nav-label {
+    font-size: 10.5px; font-weight: 600;
+    color: var(--ink-4);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px 8px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 13.5px; color: var(--ink-2);
+    transition: all .15s ease;
+    width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--bg-sunken); color: var(--ink); }
+  .nav-item.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .nav-icon { width: 16px; height: 16px; opacity: .65; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+  .nav-item.active .nav-badge {
+    background: rgba(255,255,255,.2);
+  }
+
+  .sidebar-foot {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #FBBF24, #F59E0B);
+    display: grid; place-items: center;
+    color: white; font-weight: 600; font-size: 12px;
+  }
+  .sidebar-foot-text { font-size: 12.5px; }
+  .sidebar-foot-name { font-weight: 500; }
+  .sidebar-foot-meta { color: var(--ink-3); font-size: 11px; }
+
+  /* ---------- Main ---------- */
+  .main {
+    padding: 28px 40px 60px;
+    max-width: 1100px;
+    overflow-x: hidden;
+  }
+
+  .breadcrumb {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: var(--ink-3);
+    margin-bottom: 18px;
+  }
+  .breadcrumb a:hover { color: var(--ink); }
+  .breadcrumb-sep { color: var(--ink-4); }
+
+  .page-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 24px; margin-bottom: 28px;
+  }
+  .page-title {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .page-title em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+  .page-sub {
+    font-size: 14px; color: var(--ink-2);
+    margin-top: 8px;
+    max-width: 480px;
+  }
+  .page-actions {
+    display: flex; gap: 8px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+    transition: all .15s ease;
+    border: 1px solid transparent;
+  }
+  .btn-ghost { color: var(--ink-2); border-color: var(--line-strong); background: var(--bg-elev); }
+  .btn-ghost:hover { background: var(--bg-sunken); color: var(--ink); }
+  .btn-primary { background: var(--ink); color: var(--bg); }
+  .btn-primary:hover { background: #2a2a2a; }
+  .btn-ai {
+    background: linear-gradient(135deg, var(--ai) 0%, #9333EA 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(124,58,237,.25);
+  }
+  .btn-ai:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124,58,237,.35); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+  .kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    border-radius: 4px;
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.15);
+    color: inherit; opacity: .8;
+  }
+  .btn-ghost .kbd { background: var(--bg-sunken); border-color: var(--line); color: var(--ink-3); }
+
+  /* ---------- AI hero card — 노션 노트 스타일 ---------- */
+  .ai-hero {
+    position: relative;
+    background: #FBF9F4;
+    color: var(--ink);
+    border-radius: var(--radius-lg);
+    padding: 22px 26px;
+    margin-bottom: 28px;
+    overflow: hidden;
+    border: 1px solid #EEE8D9;
+    box-shadow: var(--shadow-sm);
+  }
+  .ai-hero::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--ai) 0%, #A78BFA 100%);
+    border-radius: 3px 0 0 3px;
+  }
+  .ai-hero-inner { position: relative; z-index: 1; }
+
+  .ai-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .ai-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px;
+    background: var(--ai-soft);
+    border: 1px solid #E4D9F7;
+    color: var(--ai-ink);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .ai-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ai);
+    box-shadow: 0 0 0 0 rgba(124,58,237,.5);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(124,58,237,.4); }
+    70% { box-shadow: 0 0 0 8px rgba(124,58,237,0); }
+    100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+  }
+  .ai-time { font-size: 11.5px; color: var(--ink-3); }
+
+  .ai-headline {
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    max-width: 720px;
+    color: var(--ink);
+  }
+  .ai-headline strong {
+    font-weight: 700;
+    color: var(--ai-ink);
+    background: linear-gradient(180deg, transparent 65%, rgba(167,139,250,.25) 65%);
+    padding: 0 2px;
+  }
+  .ai-body {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink-2);
+    margin-bottom: 16px;
+    max-width: 660px;
+  }
+  .ai-actions {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .ai-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px;
+    background: var(--ink);
+    color: white;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    transition: all .15s ease;
+  }
+  .ai-btn:hover { background: #2a2a2a; }
+  .ai-btn-secondary {
+    background: white;
+    color: var(--ink-2);
+    border: 1px solid var(--line-strong);
+  }
+  .ai-btn-secondary:hover { background: var(--bg-sunken); color: var(--ink); }
+
+  .ai-suggest-list {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid #EEE8D9;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px;
+  }
+  .ai-suggest {
+    display: flex; gap: 9px; align-items: flex-start;
+    font-size: 12.5px;
+  }
+  .ai-suggest-icon {
+    width: 20px; height: 20px;
+    border-radius: 6px;
+    background: white;
+    border: 1px solid #EEE8D9;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .ai-suggest-text { line-height: 1.5; color: var(--ink-2); }
+  .ai-suggest-text strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Stat strip (토스 style hero numbers) ---------- */
+  .stat-strip {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    margin-bottom: 28px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat {
+    padding: 22px 24px;
+    position: relative;
+  }
+  .stat + .stat::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 16px; bottom: 16px;
+    width: 1px;
+    background: var(--line);
+  }
+  .stat-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .stat-value {
+    font-family: inherit;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .stat-currency { font-size: 16px; color: var(--ink-3); font-weight: 600; }
+  .stat-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .stat.highlight .stat-value { color: var(--accent); }
+  .stat-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .stat-pill.up { background: var(--danger-soft); color: var(--danger); }
+  .stat-pill.down { background: var(--ok-soft); color: var(--ok); }
+
+  /* ---------- Section ---------- */
+  .section { margin-bottom: 32px; }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title-count {
+    font-family: 'Pretendard Variable', sans-serif;
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 400;
+    background: var(--bg-sunken);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .section-tools {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .filter-tab {
+    padding: 5px 10px;
+    font-size: 12px;
+    color: var(--ink-3);
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .filter-tab:hover { color: var(--ink); }
+  .filter-tab.active { background: var(--ink); color: var(--bg); }
+  .filter-tab .member-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* ---------- Payment cards (the showcase) ---------- */
+  .payments {
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .payment-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 0;
+    overflow: hidden;
+    transition: all .2s cubic-bezier(.2,.8,.2,1);
+  }
+  .payment-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+
+  .pay-main {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 20px;
+    cursor: pointer;
+  }
+
+  .pay-due {
+    width: 56px;
+    text-align: center;
+  }
+  .pay-due-d {
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .pay-due-date {
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-top: 3px;
+    font-weight: 500;
+  }
+  .pay-card.urgent .pay-due-d { color: var(--danger); }
+  .payment-card.urgent { border-color: rgba(220,38,38,.18); background: linear-gradient(180deg, #FFFBFB 0%, var(--bg-elev) 60%); }
+
+  .pay-info { min-width: 0; }
+  .pay-title-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .pay-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .pay-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .pay-tag.ai { background: var(--ai-soft); color: var(--ai-ink); }
+  .pay-tag.manual { background: var(--bg-sunken); color: var(--ink-3); }
+  .pay-tag.recurring { background: #EEF6FF; color: #1E4FB3; }
+
+  .pay-meta {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap;
+  }
+  .member-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+  .member-chip.emma { color: var(--emma); }
+  .member-chip.jake { color: var(--jake); }
+  .member-chip-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .meta-dot { color: var(--ink-4); margin: 0 2px; }
+
+  .pay-amount {
+    text-align: right;
+    line-height: 1.1;
+  }
+  .pay-amount-num {
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .pay-amount-curr { font-size: 12px; color: var(--ink-3); font-weight: 600; }
+
+  .pay-quick {
+    display: flex; gap: 4px;
+    opacity: 0;
+    transform: translateX(4px);
+    transition: all .2s ease;
+  }
+  .payment-card:hover .pay-quick { opacity: 1; transform: translateX(0); }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    color: var(--ink-3);
+    background: transparent;
+    transition: all .15s ease;
+  }
+  .icon-btn:hover { background: var(--bg-sunken); color: var(--ink); }
+  .icon-btn.primary { background: var(--ink); color: white; }
+  .icon-btn.primary:hover { background: #2a2a2a; }
+
+  .pay-expand {
+    padding: 0 20px 16px;
+    border-top: 1px dashed var(--line);
+    margin-top: -1px;
+    display: none;
+    animation: slideDown .25s ease;
+  }
+  .payment-card.expanded .pay-expand { display: block; }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .pay-expand-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding-top: 14px;
+  }
+  .pay-detail-label { font-size: 11px; color: var(--ink-3); font-weight: 500; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pay-detail-value { font-size: 13px; color: var(--ink); }
+
+  /* Add payment row */
+  .add-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    background: var(--bg-elev);
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-lg);
+    color: var(--ink-3);
+    font-size: 13.5px;
+    transition: all .15s ease;
+    cursor: pointer;
+    width: 100%;
+  }
+  .add-row:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+    background: var(--bg-elev);
+  }
+  .add-row-plus {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--bg-sunken);
+    display: grid; place-items: center;
+  }
+  .add-row:hover .add-row-plus { background: var(--ink); color: white; }
+
+  /* ---------- Completed (collapsed) ---------- */
+  .completed-toggle {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    width: 100%;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 13px; color: var(--ink-2);
+    transition: all .15s ease;
+  }
+  .completed-toggle:hover { border-color: var(--line-strong); }
+  .completed-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--ok-soft);
+    color: var(--ok);
+    display: grid; place-items: center;
+  }
+  .completed-amount {
+    margin-left: auto;
+    font-family: inherit;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .completed-list {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .completed-list.open { display: flex; }
+  .completed-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .completed-item-name { color: var(--ink); font-weight: 500; }
+  .completed-item-meta { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  .completed-amt { font-family: inherit; font-weight: 700; font-size: 14px; color: var(--ink); letter-spacing: -0.02em; }
+
+  /* ---------- Analytics row ---------- */
+  .analytics {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600; color: var(--ink);
+  }
+  .card-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+
+  /* Chart */
+  .chart {
+    height: 160px;
+    position: relative;
+    margin-top: 8px;
+  }
+  .chart-grid {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .chart-grid-line {
+    height: 1px; background: var(--line);
+  }
+  .chart-bars {
+    position: absolute; inset: 0;
+    display: flex; align-items: flex-end; justify-content: space-around;
+    gap: 8px;
+    padding: 0 4px;
+  }
+  .chart-bar-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; flex: 1;
+    position: relative;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .chart-bar {
+    width: 100%;
+    max-width: 36px;
+    background: linear-gradient(180deg, #A5B4FC 0%, #818CF8 100%);
+    border-radius: 6px 6px 2px 2px;
+    position: relative;
+    transition: all .2s ease;
+  }
+  .chart-bar.current {
+    background: linear-gradient(180deg, #1E40AF 0%, #2563EB 100%);
+  }
+  .chart-bar-value {
+    position: absolute;
+    top: -22px;
+    left: 50%; transform: translateX(-50%);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-2);
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+  .chart-bar.current .chart-bar-value { color: var(--accent); font-weight: 600; }
+  .chart-labels {
+    position: absolute;
+    bottom: -22px;
+    left: 0; right: 0;
+    display: flex; justify-content: space-around;
+    padding: 0 4px;
+  }
+  .chart-label {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .chart-label.current { color: var(--accent); font-weight: 600; }
+
+  /* Breakdown bars */
+  .breakdown { display: flex; flex-direction: column; gap: 14px; }
+  .breakdown-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 60px;
+    gap: 12px;
+    align-items: center;
+  }
+  .breakdown-label { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+  .breakdown-bar {
+    height: 8px;
+    background: var(--bg-sunken);
+    border-radius: 100px;
+    overflow: hidden;
+    position: relative;
+  }
+  .breakdown-fill {
+    height: 100%;
+    border-radius: 100px;
+    background: var(--ink);
+    transition: width .6s ease;
+  }
+  .breakdown-row:nth-child(1) .breakdown-fill { background: #1F8FFF; }
+  .breakdown-row:nth-child(2) .breakdown-fill { background: #E85D75; }
+  .breakdown-row:nth-child(3) .breakdown-fill { background: #F59E0B; }
+  .breakdown-val {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-align: right;
+  }
+  .breakdown-val-sub {
+    font-size: 11px;
+    color: var(--ink-3);
+    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  /* Footnote */
+  .footnote {
+    margin-top: 40px;
+    padding: 14px 18px;
+    background: var(--bg-sunken);
+    border-radius: var(--radius);
+    font-size: 12.5px;
+    color: var(--ink-3);
+    display: flex; align-items: flex-start; gap: 10px;
+    line-height: 1.55;
+  }
+
+  /* ---------- AI Assistant panel (right) ---------- */
+  .agent {
+    background: var(--bg-elev);
+    border-left: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .agent-head {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .agent-title {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .agent-avatar {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--ai) 0%, #9333EA 100%);
+    display: grid; place-items: center;
+    color: white;
+    box-shadow: 0 2px 8px rgba(124,58,237,.3);
+  }
+  .agent-name {
+    font-size: 14.5px; font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .agent-status {
+    font-size: 11px; color: var(--ok);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .agent-status::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 0 rgba(5,150,105,.5);
+    animation: pulse 2s infinite;
+  }
+
+  .agent-tabs {
+    padding: 8px 12px;
+    display: flex; gap: 2px;
+    border-bottom: 1px solid var(--line);
+  }
+  .agent-tab {
+    padding: 6px 10px;
+    font-size: 12px; color: var(--ink-3);
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  .agent-tab.active { background: var(--bg-sunken); color: var(--ink); }
+  .agent-tab-count {
+    margin-left: 4px;
+    background: var(--accent);
+    color: white;
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border-radius: 100px;
+    vertical-align: 1px;
+  }
+
+  .agent-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .agent-body::-webkit-scrollbar { width: 6px; }
+  .agent-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+  .insight {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    transition: all .15s ease;
+  }
+  .insight:hover { border-color: var(--line-strong); }
+
+  .insight-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .insight-tag.detect { background: var(--ai-soft); color: var(--ai-ink); }
+  .insight-tag.alert { background: var(--warn-soft); color: var(--warn); }
+  .insight-tag.tip { background: var(--accent-soft); color: var(--accent-ink); }
+  .insight-tag.save { background: var(--ok-soft); color: var(--ok); }
+
+  .insight-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.005em;
+  }
+  .insight-body {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+  .insight-body strong { color: var(--ink); font-weight: 600; }
+  .insight-body .amt {
+    font-family: inherit;
+    font-weight: 500;
+  }
+
+  .insight-actions {
+    display: flex; gap: 6px;
+  }
+  .insight-btn {
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    transition: all .15s ease;
+  }
+  .insight-btn:hover { background: var(--ink); color: white; border-color: var(--ink); }
+  .insight-btn.primary { background: var(--ink); color: white; border-color: var(--ink); }
+  .insight-btn.primary:hover { background: #2a2a2a; }
+
+  /* Email preview mini-card */
+  .email-preview {
+    margin: 10px 0;
+    padding: 10px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 11.5px;
+  }
+  .email-preview-from {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--ink-3);
+    margin-bottom: 3px;
+  }
+  .email-preview-from strong { color: var(--ink-2); }
+  .email-preview-subject {
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 12px;
+  }
+
+  /* Composer */
+  .agent-foot {
+    padding: 14px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--bg-elev);
+  }
+  .composer {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    transition: all .15s ease;
+  }
+  .composer:focus-within {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(0,0,0,.04);
+  }
+  .composer-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    resize: none;
+    min-height: 20px;
+    padding-right: 28px;
+  }
+  .composer-input::placeholder { color: var(--ink-4); }
+  .composer-send {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: var(--ink);
+    color: white;
+    display: grid; place-items: center;
+  }
+  .composer-hints {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .hint-chip {
+    padding: 4px 9px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-size: 11px;
+    color: var(--ink-2);
+    transition: all .15s ease;
+  }
+  .hint-chip:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+  /* ---------- Command palette ---------- */
+  .palette-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,20,20,.4);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+  }
+  .palette-overlay.open { display: flex; }
+  .palette {
+    width: 560px;
+    background: var(--bg-elev);
+    border-radius: 14px;
+    box-shadow: var(--shadow-pop);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    animation: paletteIn .2s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes paletteIn {
+    from { opacity: 0; transform: translateY(-8px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .palette-input-wrap {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .palette-input {
+    flex: 1;
+    border: none; outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .palette-input::placeholder { color: var(--ink-4); }
+  .palette-list { padding: 8px; max-height: 50vh; overflow-y: auto; }
+  .palette-group { font-size: 10.5px; color: var(--ink-4); padding: 8px 10px 4px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.06em; }
+  .palette-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+  .palette-item:hover, .palette-item.active { background: var(--bg-sunken); }
+  .palette-item-icon {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--bg-sunken);
+    display: grid; place-items: center;
+    color: var(--ink-2);
+  }
+  .palette-item-shortcut {
+    margin-left: auto;
+    display: flex; gap: 3px;
+  }
+  .palette-item .kbd { background: var(--bg-sunken); border-color: var(--line); color: var(--ink-3); }
+  .palette-meta {
+    padding: 8px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    font-size: 11px;
+    color: var(--ink-3);
+    display: flex; gap: 12px;
+  }
+  .palette-meta span { display: flex; align-items: center; gap: 5px; }
+
+  /* Responsive */
+  @media (max-width: 1280px) {
+    .app { grid-template-columns: 220px 1fr 340px; }
+    .main { padding: 24px 28px 60px; }
+  }
+  @media (max-width: 1024px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar, .agent { display: none; }
+    .main { padding: 20px; }
+    .stat-strip { grid-template-columns: 1fr 1fr; }
+    .stat + .stat:nth-child(3)::before { display: none; }
+    .ai-suggest-list { grid-template-columns: 1fr; }
+    .analytics { grid-template-columns: 1fr; }
+  }
+
+  /* Subtle entrance */
+  .fade-up {
+    animation: fadeUp .5s ease backwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up:nth-child(1) { animation-delay: .02s; }
+  .fade-up:nth-child(2) { animation-delay: .06s; }
+  .fade-up:nth-child(3) { animation-delay: .10s; }
+  .fade-up:nth-child(4) { animation-delay: .14s; }
+
+  /* SVG icon defaults */
+  svg { display: block; }
+</style>
+</head>
+<body>
+
+<!-- SVG icon sprite -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7l5-4 5 4v6a1 1 0 01-1 1h-2v-4H6v4H4a1 1 0 01-1-1V7z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-provider" viewBox="0 0 16 16"><path d="M2 6h12M2 6l1.5-3h9L14 6M2 6v6a1 1 0 001 1h10a1 1 0 001-1V6M6 9h4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-card" viewBox="0 0 16 16"><rect x="2" y="4" width="12" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h12M5 10.5h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 16 16"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 6.5h11M5 2v3M11 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-family" viewBox="0 0 16 16"><circle cx="5.5" cy="5.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="10.5" cy="5.5" r="1.8" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 13c.5-2.3 2-3.5 3.5-3.5S9 10.7 9 13M7 13c.5-2.3 2-3.5 3.5-3.5S14 10.7 14 13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M14.5 8h-2M3.5 8h-2M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4M12.6 12.6l-1.4-1.4M4.8 4.8L3.4 3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 16 16"><rect x="2" y="3.5" width="12" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 5L8 9l5.5-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12l7-8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 16 16"><path d="M8 2a4 4 0 00-4 4v3l-1 2h10l-1-2V6a4 4 0 00-4-4zM6.5 13a1.5 1.5 0 003 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 16 16"><path d="M8 1.5L9.5 6 14 7.5 9.5 9 8 13.5 6.5 9 2 7.5 6.5 6 8 1.5z" fill="currentColor"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="12.5" cy="8" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 16 16"><path d="M5 7l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-send" viewBox="0 0 16 16"><path d="M2 8l12-6-4 14-2-6-6-2z" fill="currentColor"/></symbol>
+    <symbol id="i-trend" viewBox="0 0 16 16"><path d="M2 11l4-4 3 3 5-5M10 5h3v3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 16 16"><path d="M9 2L3 9h4l-1 5 6-7H8l1-5z" fill="currentColor"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 16 16"><path d="M8 1v6M5 7h6M6 7l-1 4h6l-1-4M8 11v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 1.5l-5 2v5c0 3 2 5 5 6 3-1 5-3 5-6v-5l-5-2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ========== SIDEBAR ========== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">f</div>
+      <div>
+        <div class="brand-name">Family OS</div>
+        <div class="brand-sub">김지수네 · 4인 가족</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-home"/></svg>
+        홈
+      </button>
+      <button class="nav-item active">
+        <svg class="nav-icon"><use href="#i-card"/></svg>
+        결제 트래킹
+        <span class="nav-badge">3</span>
+      </button>
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-provider"/></svg>
+        프로바이더
+      </button>
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-cal"/></svg>
+        라이프 이벤트
+      </button>
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-family"/></svg>
+        가족
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Quick Access</div>
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-mail"/></svg>
+        인보이스 메일함
+      </button>
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-trend"/></svg>
+        지출 리포트
+      </button>
+      <button class="nav-item">
+        <svg class="nav-icon"><use href="#i-settings"/></svg>
+        설정
+      </button>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="avatar">지</div>
+      <div class="sidebar-foot-text">
+        <div class="sidebar-foot-name">김지수</div>
+        <div class="sidebar-foot-meta">Pro · 가족 관리자</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN ========== -->
+  <main class="main">
+
+    <div class="breadcrumb fade-up">
+      <a href="#">프로바이더</a>
+      <span class="breadcrumb-sep">/</span>
+      <span style="color: var(--ink);">결제 트래킹</span>
+    </div>
+
+    <div class="page-head fade-up">
+      <div>
+        <h1 class="page-title">이번 주, <em>두 번의 결제</em>가 있어요</h1>
+        <p class="page-sub">은행 계좌에 연결하지 않고, 이메일 인보이스만으로 결제 일정을 관리해요. 5월 19일 화요일 기준.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-ghost" onclick="openPalette()">
+          <svg width="14" height="14"><use href="#i-search"/></svg>
+          빠른 작업
+          <span class="kbd">⌘K</span>
+        </button>
+        <button class="btn btn-primary">
+          <svg width="14" height="14"><use href="#i-plus"/></svg>
+          결제 추가
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Hero Card -->
+    <section class="ai-hero fade-up">
+      <div class="ai-hero-inner">
+        <div class="ai-row">
+          <span class="ai-chip"><span class="ai-dot"></span> Family AI · 분석 완료</span>
+          <span class="ai-time">3분 전 업데이트</span>
+        </div>
+
+        <h2 class="ai-headline">이번 달은 평소보다 <strong>$14 더 지출</strong>되고 있어요. Emma의 수영 등록비가 4월에 한 번 더 청구된 것 같은데, <strong>중복 청구 확인이 필요</strong>해 보여요.</h2>
+
+        <p class="ai-body">5월 1일과 5월 25일 두 번 모두 Aqua Kids에서 Term 2 인보이스가 도착했어요. 학기 등록은 한 번 결제하는 게 일반적이라, 자동으로 환불 요청 메일 초안을 만들어 두었어요.</p>
+
+        <div class="ai-actions">
+          <button class="ai-btn">
+            <svg width="13" height="13"><use href="#i-mail"/></svg>
+            환불 요청 메일 보기
+            <svg width="11" height="11" style="opacity:.5"><use href="#i-arrow"/></svg>
+          </button>
+          <button class="ai-btn ai-btn-secondary">
+            <svg width="13" height="13"><use href="#i-check"/></svg>
+            정상 청구로 표시
+          </button>
+          <button class="ai-btn ai-btn-secondary">자세히 알아보기</button>
+        </div>
+
+        <div class="ai-suggest-list">
+          <div class="ai-suggest">
+            <div class="ai-suggest-icon">
+              <svg width="11" height="11" style="color:var(--ai)"><use href="#i-bell"/></svg>
+            </div>
+            <div class="ai-suggest-text"><strong>Aqua Kids 결제일까지 D-2</strong> — 화요일 오전 9시 리마인더 자동 설정 제안</div>
+          </div>
+          <div class="ai-suggest">
+            <div class="ai-suggest-icon">
+              <svg width="11" height="11" style="color:var(--accent)"><use href="#i-trend"/></svg>
+            </div>
+            <div class="ai-suggest-text"><strong>피아노 레슨비 인상 감지</strong> — 6월부터 $85 → $95로 변경된다는 메일 도착</div>
+          </div>
+          <div class="ai-suggest">
+            <div class="ai-suggest-icon">
+              <svg width="11" height="11" style="color:var(--ok)"><use href="#i-shield"/></svg>
+            </div>
+            <div class="ai-suggest-text"><strong>Sunshine CCS 공제</strong>가 적용되어 $58 절감됨. 정상 처리됨</div>
+          </div>
+          <div class="ai-suggest">
+            <div class="ai-suggest-icon">
+              <svg width="11" height="11" style="color:var(--warn)"><use href="#i-spark"/></svg>
+            </div>
+            <div class="ai-suggest-text"><strong>새 인보이스 1건 대기 중</strong> — Northside Primary 체험학습비 $32, 검토 필요</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stat strip -->
+    <section class="stat-strip fade-up">
+      <div class="stat highlight">
+        <div class="stat-label">
+          <svg width="11" height="11"><use href="#i-zap"/></svg>
+          이번 주 예정
+        </div>
+        <div class="stat-value"><span class="stat-currency">$</span>85<span class="stat-currency">.00</span></div>
+        <div class="stat-meta">D-2 · Aqua Kids 수영 (Emma · Jake)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">이번 달 예정</div>
+        <div class="stat-value"><span class="stat-currency">$</span>312</div>
+        <div class="stat-meta">3개 서비스 · 5월</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">이미 납부</div>
+        <div class="stat-value"><span class="stat-currency">$</span>227</div>
+        <div class="stat-meta">5월 기준 · 3건 완료</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">연간 총 지출</div>
+        <div class="stat-value"><span class="stat-currency">$</span>3,840</div>
+        <div class="stat-meta">
+          1월~현재
+          <span class="stat-pill down">↓ 4%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upcoming payments -->
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          다가오는 결제
+          <span class="section-title-count">3개 예정</span>
+        </div>
+        <div class="section-tools">
+          <button class="filter-tab active">전체</button>
+          <button class="filter-tab">
+            <span class="member-dot" style="background: var(--emma);"></span>Emma
+          </button>
+          <button class="filter-tab">
+            <span class="member-dot" style="background: var(--jake);"></span>Jake
+          </button>
+        </div>
+      </div>
+
+      <div class="payments">
+
+        <!-- Card 1: Urgent -->
+        <article class="payment-card urgent" data-payment="aqua">
+          <div class="pay-main" onclick="toggleCard(this)">
+            <div class="pay-due">
+              <div class="pay-due-d" style="color: var(--danger);">D-2</div>
+              <div class="pay-due-date">5월 25일 (월)</div>
+            </div>
+            <div class="pay-info">
+              <div class="pay-title-row">
+                <span class="pay-title">Aqua Kids 수영</span>
+                <span class="pay-tag ai">
+                  <svg width="9" height="9"><use href="#i-spark"/></svg>
+                  AI 감지
+                </span>
+                <span class="pay-tag recurring">학기</span>
+              </div>
+              <div class="pay-meta">
+                <span class="member-chip emma"><span class="member-chip-dot"></span>Emma</span>
+                <span class="member-chip jake"><span class="member-chip-dot"></span>Jake</span>
+                <span class="meta-dot">·</span>
+                Term 2 5월분
+                <span class="meta-dot">·</span>
+                <span class="mono" style="font-size: 11px;">#2048</span>
+              </div>
+            </div>
+            <div class="pay-amount">
+              <div class="pay-amount-num"><span class="pay-amount-curr">$</span>85<span class="pay-amount-curr">.00</span></div>
+            </div>
+            <div class="pay-quick">
+              <button class="icon-btn primary" title="납부 완료" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-check"/></svg>
+              </button>
+              <button class="icon-btn" title="리마인더 설정" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-bell"/></svg>
+              </button>
+              <button class="icon-btn" title="더보기" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-more"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="pay-expand">
+            <div class="pay-expand-inner">
+              <div>
+                <div class="pay-detail-label">감지된 인보이스</div>
+                <div class="pay-detail-value">
+                  <svg width="11" height="11" style="display:inline; vertical-align: -1px; color: var(--ink-3);"><use href="#i-mail"/></svg>
+                  billing@aquakids.com.au · 5월 18일 수신
+                </div>
+              </div>
+              <div>
+                <div class="pay-detail-label">결제 방법</div>
+                <div class="pay-detail-value">직접 송금 (BSB 062-000 · 1234 5678)</div>
+              </div>
+              <div>
+                <div class="pay-detail-label">납기일</div>
+                <div class="pay-detail-value">2026년 5월 25일 (월) 자정 이전</div>
+              </div>
+              <div>
+                <div class="pay-detail-label">참조 번호</div>
+                <div class="pay-detail-value mono" style="font-size: 12px;">INV-2048-EMMA-JAKE</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="payment-card" data-payment="sunshine">
+          <div class="pay-main" onclick="toggleCard(this)">
+            <div class="pay-due">
+              <div class="pay-due-d">D-7</div>
+              <div class="pay-due-date">5월 31일 (토)</div>
+            </div>
+            <div class="pay-info">
+              <div class="pay-title-row">
+                <span class="pay-title">Sunshine 어린이집</span>
+                <span class="pay-tag ai">
+                  <svg width="9" height="9"><use href="#i-spark"/></svg>
+                  AI 감지
+                </span>
+                <span class="pay-tag recurring">월 정기</span>
+              </div>
+              <div class="pay-meta">
+                <span class="member-chip jake"><span class="member-chip-dot"></span>Jake</span>
+                <span class="meta-dot">·</span>
+                5월 보육료
+                <span class="meta-dot">·</span>
+                CCS $58 공제 후
+              </div>
+            </div>
+            <div class="pay-amount">
+              <div class="pay-amount-num"><span class="pay-amount-curr">$</span>142<span class="pay-amount-curr">.00</span></div>
+            </div>
+            <div class="pay-quick">
+              <button class="icon-btn primary" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-check"/></svg>
+              </button>
+              <button class="icon-btn" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-bell"/></svg>
+              </button>
+              <button class="icon-btn" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-more"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="payment-card" data-payment="piano">
+          <div class="pay-main" onclick="toggleCard(this)">
+            <div class="pay-due">
+              <div class="pay-due-d">D-14</div>
+              <div class="pay-due-date">6월 1일 (일)</div>
+            </div>
+            <div class="pay-info">
+              <div class="pay-title-row">
+                <span class="pay-title">피아노 아카데미</span>
+                <span class="pay-tag manual">수동 등록</span>
+                <span class="pay-tag recurring">매월 자동이체</span>
+              </div>
+              <div class="pay-meta">
+                <span class="member-chip emma"><span class="member-chip-dot"></span>Emma</span>
+                <span class="meta-dot">·</span>
+                월 레슨비
+                <span class="meta-dot">·</span>
+                <span style="color: var(--warn);">6월부터 $95로 인상 예정</span>
+              </div>
+            </div>
+            <div class="pay-amount">
+              <div class="pay-amount-num"><span class="pay-amount-curr">$</span>85<span class="pay-amount-curr">.00</span></div>
+            </div>
+            <div class="pay-quick">
+              <button class="icon-btn primary" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-check"/></svg>
+              </button>
+              <button class="icon-btn" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-bell"/></svg>
+              </button>
+              <button class="icon-btn" onclick="event.stopPropagation();">
+                <svg width="14" height="14"><use href="#i-more"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <button class="add-row">
+          <div class="add-row-plus">
+            <svg width="14" height="14"><use href="#i-plus"/></svg>
+          </div>
+          <div>
+            <div style="color: var(--ink); font-weight: 500;">이메일에 없는 결제 직접 추가</div>
+            <div style="font-size: 11.5px;">현금으로 납부했거나 카톡으로 받은 청구도 기록할 수 있어요</div>
+          </div>
+        </button>
+
+      </div>
+    </section>
+
+    <!-- Completed -->
+    <section class="section">
+      <button class="completed-toggle" onclick="toggleCompleted(this)">
+        <div class="completed-check">
+          <svg width="11" height="11"><use href="#i-check"/></svg>
+        </div>
+        <div>
+          <span style="color: var(--ink); font-weight: 500;">이번 달 납부 완료</span>
+          <span style="color: var(--ink-3); margin-left: 6px;">3건</span>
+        </div>
+        <div class="completed-amount">$227.00</div>
+        <svg width="14" height="14" style="color: var(--ink-3);"><use href="#i-chev"/></svg>
+      </button>
+      <div class="completed-list">
+        <div class="completed-item">
+          <div>
+            <div class="completed-item-name">Northside Primary 소풍비</div>
+            <div class="completed-item-meta">Emma · 5월 12일 납부 · 이메일 자동감지</div>
+          </div>
+          <div class="completed-amt">$25.00</div>
+        </div>
+        <div class="completed-item">
+          <div>
+            <div class="completed-item-name">Aqua Kids 수영 · 4월분</div>
+            <div class="completed-item-meta">Emma, Jake · 5월 1일 납부 · 이메일 자동감지</div>
+          </div>
+          <div class="completed-amt">$85.00</div>
+        </div>
+        <div class="completed-item">
+          <div>
+            <div class="completed-item-name">Sunshine 어린이집 · 4월분</div>
+            <div class="completed-item-meta">Jake · 5월 2일 납부 · 수동 확인</div>
+          </div>
+          <div class="completed-amt">$117.00</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Analytics -->
+    <section class="analytics">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">월별 지출 추이</div>
+            <div class="card-sub">월 평균 $298 · 이번 달은 $312로 평소보다 +4.7% 높아요</div>
+          </div>
+          <button class="btn btn-ghost btn-sm">최근 6개월 ▾</button>
+        </div>
+        <div class="chart">
+          <div class="chart-grid">
+            <div class="chart-grid-line"></div>
+            <div class="chart-grid-line"></div>
+            <div class="chart-grid-line"></div>
+            <div class="chart-grid-line"></div>
+          </div>
+          <div class="chart-bars">
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 62%;">
+                <div class="chart-bar-value">$272</div>
+              </div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 68%;">
+                <div class="chart-bar-value">$295</div>
+              </div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 71%;">
+                <div class="chart-bar-value">$308</div>
+              </div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar" style="height: 65%;">
+                <div class="chart-bar-value">$283</div>
+              </div>
+            </div>
+            <div class="chart-bar-wrap">
+              <div class="chart-bar current" style="height: 73%;">
+                <div class="chart-bar-value">$312</div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-labels">
+            <span class="chart-label">1월</span>
+            <span class="chart-label">2월</span>
+            <span class="chart-label">3월</span>
+            <span class="chart-label">4월</span>
+            <span class="chart-label current">5월</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">서비스별 비중</div>
+            <div class="card-sub">이번 달 $312 기준</div>
+          </div>
+        </div>
+        <div class="breakdown">
+          <div class="breakdown-row">
+            <div class="breakdown-label">어린이집</div>
+            <div class="breakdown-bar"><div class="breakdown-fill" style="width: 45%;"></div></div>
+            <div class="breakdown-val">$142<div class="breakdown-val-sub">45%</div></div>
+          </div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">수영</div>
+            <div class="breakdown-bar"><div class="breakdown-fill" style="width: 28%;"></div></div>
+            <div class="breakdown-val">$85<div class="breakdown-val-sub">27%</div></div>
+          </div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">피아노</div>
+            <div class="breakdown-bar"><div class="breakdown-fill" style="width: 28%;"></div></div>
+            <div class="breakdown-val">$85<div class="breakdown-val-sub">28%</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footnote">
+      <svg width="14" height="14" style="color: var(--ink-3); flex-shrink: 0; margin-top: 2px;"><use href="#i-shield"/></svg>
+      <div>
+        <strong style="color: var(--ink-2);">은행 계좌에 직접 연결하지 않아요.</strong>
+        이메일 인보이스에서 감지하거나 직접 입력한 정보 기반으로만 작동해요.
+        Family AI는 이메일 본문을 분석할 때만 사용되며, 결제 정보는 기기에 암호화되어 저장돼요.
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========== AI AGENT PANEL ========== -->
+  <aside class="agent">
+    <div class="agent-head">
+      <div class="agent-title">
+        <div class="agent-avatar">
+          <svg width="14" height="14"><use href="#i-spark"/></svg>
+        </div>
+        <div>
+          <div class="agent-name">Family AI</div>
+          <div class="agent-status">활성 · 받은편지함 모니터링 중</div>
+        </div>
+      </div>
+      <button class="icon-btn">
+        <svg width="14" height="14"><use href="#i-more"/></svg>
+      </button>
+    </div>
+
+    <div class="agent-tabs">
+      <button class="agent-tab active">
+        인사이트
+        <span class="agent-tab-count">4</span>
+      </button>
+      <button class="agent-tab">처리 내역</button>
+      <button class="agent-tab">설정</button>
+    </div>
+
+    <div class="agent-body">
+
+      <!-- Insight 1: New email detected -->
+      <div class="insight">
+        <div class="insight-tag detect">
+          <svg width="9" height="9"><use href="#i-mail"/></svg>
+          새 인보이스 감지
+        </div>
+        <div class="insight-title">Northside Primary에서 메일이 도착했어요</div>
+        <div class="insight-body">
+          <strong>체험학습비 $32</strong>가 5월 30일까지 납부 예정이에요. 결제 트래커에 추가할까요?
+        </div>
+        <div class="email-preview">
+          <div class="email-preview-from">
+            <svg width="10" height="10"><use href="#i-mail"/></svg>
+            <span><strong>Northside Primary</strong> · admin@northside.edu.au</span>
+          </div>
+          <div class="email-preview-subject">[Invoice] Year 4 Excursion - City Museum Visit</div>
+        </div>
+        <div class="insight-actions">
+          <button class="insight-btn primary">추가하기</button>
+          <button class="insight-btn">무시</button>
+          <button class="insight-btn">메일 보기</button>
+        </div>
+      </div>
+
+      <!-- Insight 2: Duplicate alert -->
+      <div class="insight">
+        <div class="insight-tag alert">
+          <svg width="9" height="9"><use href="#i-bell"/></svg>
+          중복 청구 의심
+        </div>
+        <div class="insight-title">Aqua Kids에서 한 달에 두 번 청구됐어요</div>
+        <div class="insight-body">
+          5월 1일과 5월 25일 모두 Term 2 등록비가 청구됐어요. <strong>두 번째 인보이스는 환불 요청</strong>이 필요해 보여요.
+        </div>
+        <div class="insight-actions">
+          <button class="insight-btn primary">환불 메일 작성</button>
+          <button class="insight-btn">정상으로 표시</button>
+        </div>
+      </div>
+
+      <!-- Insight 3: Price change -->
+      <div class="insight">
+        <div class="insight-tag tip">
+          <svg width="9" height="9"><use href="#i-trend"/></svg>
+          가격 변동
+        </div>
+        <div class="insight-title">피아노 레슨비가 6월부터 인상돼요</div>
+        <div class="insight-body">
+          <span class="amt">$85 → $95</span> (+11.7%). 연간 <strong class="amt">$120 추가 지출</strong>이 예상돼요. 미리 알려드릴게요.
+        </div>
+        <div class="insight-actions">
+          <button class="insight-btn">예산에 반영</button>
+          <button class="insight-btn">알람 끄기</button>
+        </div>
+      </div>
+
+      <!-- Insight 4: Saving -->
+      <div class="insight">
+        <div class="insight-tag save">
+          <svg width="9" height="9"><use href="#i-shield"/></svg>
+          이번 달 절감
+        </div>
+        <div class="insight-title">CCS 공제로 $58 절약했어요</div>
+        <div class="insight-body">
+          Sunshine 어린이집에서 정부 보조금이 자동 적용되었어요. 연간 약 <strong class="amt">$696</strong> 절감 효과예요.
+        </div>
+        <div class="insight-actions">
+          <button class="insight-btn">자세히</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="agent-foot">
+      <div class="composer">
+        <textarea class="composer-input" rows="1" placeholder="궁금한 걸 물어보세요 — 예) 다음 달 결제 미리 알려줘"></textarea>
+        <button class="composer-send">
+          <svg width="12" height="12"><use href="#i-send"/></svg>
+        </button>
+      </div>
+      <div class="composer-hints">
+        <button class="hint-chip">📅 다음 달 예상 지출</button>
+        <button class="hint-chip">💰 가장 큰 지출 항목</button>
+        <button class="hint-chip">✉️ 미확인 메일 정리</button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ========== COMMAND PALETTE ========== -->
+<div class="palette-overlay" id="palette" onclick="if(event.target===this) closePalette()">
+  <div class="palette">
+    <div class="palette-input-wrap">
+      <svg width="16" height="16" style="color: var(--ink-3);"><use href="#i-search"/></svg>
+      <input class="palette-input" placeholder="결제 검색, 또는 명령 입력..." autofocus>
+      <span class="kbd" style="background: var(--bg-sunken); border-color: var(--line); color: var(--ink-3);">ESC</span>
+    </div>
+    <div class="palette-list">
+      <div class="palette-group">제안</div>
+      <div class="palette-item active">
+        <div class="palette-item-icon"><svg width="12" height="12"><use href="#i-spark"/></svg></div>
+        <div>
+          <div>이번 달 지출을 한 줄로 요약해줘</div>
+        </div>
+        <div class="palette-item-shortcut"><span class="kbd">⏎</span></div>
+      </div>
+      <div class="palette-item">
+        <div class="palette-item-icon"><svg width="12" height="12"><use href="#i-mail"/></svg></div>
+        <div>이메일 다시 스캔하기</div>
+      </div>
+      <div class="palette-item">
+        <div class="palette-item-icon"><svg width="12" height="12"><use href="#i-plus"/></svg></div>
+        <div>새 결제 추가하기</div>
+      </div>
+
+      <div class="palette-group">결제 항목</div>
+      <div class="palette-item">
+        <div class="palette-item-icon" style="background: var(--emma-soft); color: var(--emma);">E</div>
+        <div>
+          <div>Aqua Kids 수영 · Emma + Jake</div>
+        </div>
+        <div class="palette-item-shortcut"><span class="kbd">↗</span></div>
+      </div>
+      <div class="palette-item">
+        <div class="palette-item-icon" style="background: var(--jake-soft); color: var(--jake);">J</div>
+        <div>Sunshine 어린이집 · Jake</div>
+      </div>
+      <div class="palette-item">
+        <div class="palette-item-icon" style="background: var(--emma-soft); color: var(--emma);">E</div>
+        <div>피아노 아카데미 · Emma</div>
+      </div>
+
+      <div class="palette-group">탐색</div>
+      <div class="palette-item">
+        <div class="palette-item-icon"><svg width="12" height="12"><use href="#i-trend"/></svg></div>
+        <div>지출 리포트 보기</div>
+        <div class="palette-item-shortcut"><span class="kbd">G</span><span class="kbd">R</span></div>
+      </div>
+      <div class="palette-item">
+        <div class="palette-item-icon"><svg width="12" height="12"><use href="#i-family"/></svg></div>
+        <div>가족 멤버 관리</div>
+        <div class="palette-item-shortcut"><span class="kbd">G</span><span class="kbd">F</span></div>
+      </div>
+    </div>
+    <div class="palette-meta">
+      <span><span class="kbd">↑↓</span> 이동</span>
+      <span><span class="kbd">⏎</span> 선택</span>
+      <span><span class="kbd">⌘</span><span class="kbd">K</span> 닫기</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleCard(el) {
+    const card = el.closest('.payment-card');
+    card.classList.toggle('expanded');
+  }
+  function toggleCompleted(el) {
+    const list = el.nextElementSibling;
+    list.classList.toggle('open');
+    const chev = el.querySelector('svg:last-child');
+    if (chev) chev.style.transform = list.classList.contains('open') ? 'rotate(180deg)' : '';
+  }
+  function openPalette() {
+    document.getElementById('palette').classList.add('open');
+    setTimeout(() => document.querySelector('.palette-input').focus(), 50);
+  }
+  function closePalette() {
+    document.getElementById('palette').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      const p = document.getElementById('palette');
+      p.classList.contains('open') ? closePalette() : openPalette();
+    }
+    if (e.key === 'Escape') closePalette();
+  });
+
+  // Auto-resize composer
+  const composer = document.querySelector('.composer-input');
+  if (composer) {
+    composer.addEventListener('input', () => {
+      composer.style.height = 'auto';
+      composer.style.height = Math.min(composer.scrollHeight, 120) + 'px';
+    });
+  }
+</script>
+
+</body>
+</html>
